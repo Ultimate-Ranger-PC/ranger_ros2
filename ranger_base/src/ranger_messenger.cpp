@@ -171,6 +171,12 @@ void RangerROSMessenger::SetupSubscription() {
           "ranger_base_node/parking_service",
           std::bind(&RangerROSMessenger::TriggerParkingService, this,
                     std::placeholders::_1, std::placeholders::_2));
+  set_light_service_ = node_->create_service<std_srvs::srv::LightService>(
+        "ranger_base_node/set_light",
+        std::bind(&RangerROSMessenger::SetLightCallback, this, 
+          std::placeholders::_1, std::placeholders::_2));
+
+    RCLCPP_INFO(node_->get_logger(), "Set Light service is ready.");
 
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
 }
@@ -568,4 +574,39 @@ bool RangerROSMessenger::TriggerParkingService(
   parking_mode_ = res->is_parked;
   return res->response;
 }
+
+bool RangerROSMessenger::SetLightCallback(
+    const std::shared_ptr<std_srvs::srv::LightService::Request> request,
+    const std::shared_ptr<std_srvs::srv::LightService::Response> response) {
+
+    // Reset odometry state
+    set_light = request.mode;
+    AgxLightMode f_mode;
+    uint8_t f_value = request.brightness;
+
+    switch (request.mode)
+    {
+      case "on":
+        f_mode = AgxLightMode::CONST_ON;
+        break;
+      case "off":
+        f_mode = AgxLightMode::CONST_OFF;
+        break;
+      case "blink":
+        f_mode = AgxLightMode::BREATH;
+        break;
+      case "custom":
+        f_mode = AgxLightMode::CUSTOM;
+        break;
+    }  
+    // Set success response
+    robot_->SetLightCommand(AgxLightMode f_mode, uint8_t f_value);
+    response->success = true;
+    response->message = "Light has been set to %s.", request.mode;
+    
+
+    RCLCPP_INFO(node_->get_logger(), "Light has been set to %s.", request.mode);
+    return response->success
+}
+
 }  // namespace westonrobot

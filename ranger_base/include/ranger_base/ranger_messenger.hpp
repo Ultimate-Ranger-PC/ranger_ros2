@@ -81,6 +81,8 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   double ConvertInnerAngleToCentral(double angle);
   double ConvertCentralAngleToInner(double angle);
   bool TriggerParkingService(const std::shared_ptr<ranger_msgs::srv::TriggerParkMode::Request> req, const std::shared_ptr<ranger_msgs::srv::TriggerParkMode::Response> res);
+  bool SetLightCallback(const std::shared_ptr<std_srvs::srv::LightService::Request>, const std::shared_ptr<std_srvs::srv::LightService::Response>);
+
 
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<RangerRobot> robot_;
@@ -114,6 +116,8 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr motion_cmd_sub_;
 
   rclcpp::Service<ranger_msgs::srv::TriggerParkMode>::SharedPtr trigger_parking_server;
+
+  rclcpp::Service<ranger_msgs::srv::LightService>::SharedPtr set_light_service_;
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
