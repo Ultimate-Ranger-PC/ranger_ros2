@@ -26,10 +26,24 @@ find_package(tf2_ros REQUIRED)
 find_package(ranger_msgs REQUIRED)
 find_package(ugv_sdk REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(
   include
-  # ${EIGEN3_INCLUDE_DIR}
+  ${EIGEN3_INCLUDE_DIR}
+)
+
+set(DEPENDENCIES
+  "geometry_msgs"
+  "nav_msgs"
+  "rclcpp"
+  "std_msgs"
+  "tf2"
+  "tf2_ros"
+  "ranger_msgs"
+  "sensor_msgs"
+  "tf2_geometry_msgs"
+  "std_srvs"
 )
 
 add_executable(ranger_base_node

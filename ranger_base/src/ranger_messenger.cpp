@@ -47,6 +47,7 @@ RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node) {
     return;
   }
 
+  SetupServices();  // Initialize the services
   SetupSubscription();
 }
 
@@ -67,18 +68,20 @@ void RangerROSMessenger::LoadParameters() {
   base_frame_ =
       node_->declare_parameter<std::string>("base_frame", "base_link");
   update_rate_ = node_->declare_parameter<int>("update_rate", 50);
-  odom_topic_name_ =
-      node_->declare_parameter<std::string>("odom_topic_name", "odom");
-  publish_odom_tf_ = node_->declare_parameter<bool>("publish_odom_tf", false);
+  odom_topic_name_ = node_->declare_parameter<std::string>("odom_topic_name", "odom");
+  publish_odom_tf_ = node_->declare_parameter<bool>("publish_odom_tf",false);
+  position_covariance_ = node_->declare_parameter<double>("position_covariance", 0.1);
+  orientation_covariance_ = node_->declare_parameter<double>("orientation_covariance", 0.1);
+  linear_velocity_covariance_ = node_->declare_parameter<double>("linear_velocity_covariance", 0.1);
+  angular_velocity_covariance_ = node_->declare_parameter<double>("angular_velocity_covariance", 0.1);
 
   RCLCPP_INFO(
       node_->get_logger(),
       "Successfully loaded the following parameters: \n port_name: %s\n "
-      "robot_model: %s\n odom_frame: %s\n base_frame: %s\n "
+      "robot_model:  odom_frame: %s\n base_frame: %s/%s\n "
       "update_rate: %d\n odom_topic_name: %s\n "
       "publish_odom_tf: %d\n",
-      port_name_.c_str(), robot_model_.c_str(), odom_frame_.c_str(),
-      base_frame_.c_str(), update_rate_, odom_topic_name_.c_str(),
+      port_name_.c_str(), robot_model_.c_str(), odom_frame_.c_str(), base_frame_.c_str(), update_rate_, odom_topic_name_.c_str(),
       publish_odom_tf_);
 
   // load robot parameters
@@ -144,18 +147,15 @@ void RangerROSMessenger::LoadParameters() {
 
 void RangerROSMessenger::SetupSubscription() {
   // publisher
-  system_state_pub_ = node_->create_publisher<ranger_msgs::msg::SystemState>(
-      "/system_state", 10);
-  motion_state_pub_ = node_->create_publisher<ranger_msgs::msg::MotionState>(
-      "/motion_state", 10);
+  system_state_pub_ =
+      node_->create_publisher<ranger_msgs::msg::SystemState>("system_state", 10);
+  motion_state_pub_ =
+      node_->create_publisher<ranger_msgs::msg::MotionState>("motion_state", 10);
   actuator_state_pub_ =
-      node_->create_publisher<ranger_msgs::msg::ActuatorStateArray>(
-          "/actuator_state", 10);
-  odom_pub_ =
-      node_->create_publisher<nav_msgs::msg::Odometry>(odom_topic_name_, 10);
-  battery_state_pub_ = node_->create_publisher<sensor_msgs::msg::BatteryState>(
-      "/battery_state", 10);
-
+      node_->create_publisher<ranger_msgs::msg::ActuatorStateArray>("actuator_state", 10);
+  odom_pub_ = node_->create_publisher<nav_msgs::msg::Odometry>(odom_topic_name_, 10);
+  battery_state_pub_ =
+      node_->create_publisher<sensor_msgs::msg::BatteryState>("battery_state", 10);
   rc_state_pub_ = node_->create_publisher<ranger_msgs::msg::RCState>(
       "/rc_state", 10);
 
@@ -179,6 +179,31 @@ void RangerROSMessenger::SetupSubscription() {
     RCLCPP_INFO(node_->get_logger(), "Set Light service is ready.");
 
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
+}
+
+void RangerROSMessenger::SetupServices() {
+
+    reset_odom_service_ = node_->create_service<std_srvs::srv::Trigger>(
+        "reset_odometry",
+        std::bind(&RangerROSMessenger::ResetOdometryCallback, this, std::placeholders::_1, std::placeholders::_2));
+
+    RCLCPP_INFO(node_->get_logger(), "Reset Odometry service is ready.");
+}
+
+void RangerROSMessenger::ResetOdometryCallback(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+
+    // Reset odometry state
+    position_x_ = 0.0;
+    position_y_ = 0.0;
+    theta_ = 0.0;
+
+    // Set success response
+    response->success = true;
+    response->message = "Odometry has been reset to zero.";
+
+    RCLCPP_INFO(node_->get_logger(), "Odometry reset requested. Resetting to zero.");
 }
 
 void RangerROSMessenger::PublishStateToROS() {
@@ -377,6 +402,9 @@ void RangerROSMessenger::UpdateOdometry(double linear, double angular,
   odom_msg.pose.pose.position.y = position_y_;
   odom_msg.pose.pose.position.z = 0.0;
   odom_msg.pose.pose.orientation = odom_quat;
+  odom_msg.pose.covariance[0] = position_covariance_;
+  odom_msg.pose.covariance[7] = position_covariance_;
+  odom_msg.pose.covariance[35] = orientation_covariance_;
 
   if (motion_mode_ == MotionState::MOTION_MODE_DUAL_ACKERMAN) {
     odom_msg.twist.twist.linear.x = linear;
@@ -384,6 +412,10 @@ void RangerROSMessenger::UpdateOdometry(double linear, double angular,
     odom_msg.twist.twist.angular.z =
         2 * linear * std::sin(ConvertInnerAngleToCentral(angle)) /
         robot_params_.wheelbase;
+    odom_msg.twist.covariance[0] = linear_velocity_covariance_;
+    odom_msg.twist.covariance[7] = linear_velocity_covariance_;
+    odom_msg.twist.covariance[35] = angular_velocity_covariance_;
+
   } else if (motion_mode_ == MotionState::MOTION_MODE_PARALLEL ||
              motion_mode_ == MotionState::MOTION_MODE_SIDE_SLIP) {
     double phi = angle;
@@ -393,12 +425,17 @@ void RangerROSMessenger::UpdateOdometry(double linear, double angular,
     }
     odom_msg.twist.twist.linear.x = linear * std::cos(phi);
     odom_msg.twist.twist.linear.y = linear * std::sin(phi);
-
     odom_msg.twist.twist.angular.z = 0;
+    odom_msg.twist.covariance[0] = linear_velocity_covariance_;
+    odom_msg.twist.covariance[7] = linear_velocity_covariance_;
+    odom_msg.twist.covariance[35] = angular_velocity_covariance_ / 2.0;
   } else if (motion_mode_ == MotionState::MOTION_MODE_SPINNING) {
     odom_msg.twist.twist.linear.x = 0;
     odom_msg.twist.twist.linear.y = 0;
     odom_msg.twist.twist.angular.z = angular;
+    odom_msg.twist.covariance[0] = linear_velocity_covariance_ / 2.0;
+    odom_msg.twist.covariance[7] = linear_velocity_covariance_ / 2.0;
+    odom_msg.twist.covariance[35] = angular_velocity_covariance_;
   }
 
   odom_pub_->publish(odom_msg);
