@@ -86,7 +86,7 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
 
   double ConvertInnerAngleToCentral(double angle);
   double ConvertCentralAngleToInner(double angle);
-  bool SetLightCallback(const std::shared_ptr<ranger_msgs::srv::LightService::Request> request, const std::shared_ptr<ranger_msgs::srv::LightService::Response> response);
+  bool SetLightCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request> request, const std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
 
   std::shared_ptr<rclcpp::Node> node_;
@@ -126,7 +126,7 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   
   // ROS2 Service to Reset the Odometry Frame
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_odom_service_;
-  rclcpp::Service<ranger_msgs::srv::LightService>::SharedPtr set_light_service_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr set_light_service_;
 
   // odom variables
   rclcpp::Time last_time_;
