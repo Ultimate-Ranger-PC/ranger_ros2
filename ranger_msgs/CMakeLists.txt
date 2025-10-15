@@ -28,7 +28,7 @@ set(msg_file
 
 set(srv_file
 "srv/TriggerParkMode.srv"
-"serv/LightService.srv"
+"srv/LightService.srv"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
