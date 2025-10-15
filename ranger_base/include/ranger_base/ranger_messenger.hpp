@@ -81,7 +81,7 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   double ConvertInnerAngleToCentral(double angle);
   double ConvertCentralAngleToInner(double angle);
   bool TriggerParkingService(const std::shared_ptr<ranger_msgs::srv::TriggerParkMode::Request> req, const std::shared_ptr<ranger_msgs::srv::TriggerParkMode::Response> res);
-  bool SetLightCallback(const std::shared_ptr<std_srvs::srv::LightService::Request>, const std::shared_ptr<std_srvs::srv::LightService::Response>);
+  bool SetLightCallback(const std::shared_ptr<ranger_msgs::srv::LightService::Request> request, const std::shared_ptr<ranger_msgs::srv::LightService::Response> response);
 
 
   std::shared_ptr<rclcpp::Node> node_;
