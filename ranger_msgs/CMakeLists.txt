@@ -25,8 +25,14 @@ set(msg_file
 "msg/SystemState.msg"
 )
 
+set(srv_file
+# "srv/TriggerParkMode.srv"
+"srv/LightService.srv"
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
     ${msg_file}
+    ${srv_file}
   DEPENDENCIES 
     builtin_interfaces std_msgs)
 

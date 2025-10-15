@@ -142,6 +142,12 @@ void RangerROSMessenger::SetupSubscription() {
   motion_cmd_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
       "cmd_vel", 5, std::bind(&RangerROSMessenger::TwistCmdCallback, this, std::placeholders::_1)
       );
+  // service server
+  set_light_service_ = node_->create_service<ranger_msgs::srv::LightService>(
+        "ranger_base_node/set_light",
+        std::bind(&RangerROSMessenger::SetLightCallback, this, 
+        std::placeholders::_1, std::placeholders::_2));
+
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
 }
 
@@ -533,4 +539,35 @@ double RangerROSMessenger::ConvertCentralAngleToInner(double angle) {
   phi_i *= angle >= 0 ? 1.0 : -1.0;
   return phi_i;
 }
+
+bool RangerROSMessenger::SetLightCallback(
+    const std::shared_ptr<ranger_msgs::srv::LightService::Request> request,
+    const std::shared_ptr<ranger_msgs::srv::LightService::Response> response) {
+
+    // Reset odometry state
+    std::string set_light = request->mode;
+    AgxLightMode f_mode;
+    uint8_t f_value = request->brightness;
+
+    if (set_light == "on") {
+        f_mode = AgxLightMode::CONST_ON;
+    } else if (set_light == "off") {
+        f_mode = AgxLightMode::CONST_OFF;
+    } else if (set_light == "blink") {
+        f_mode = AgxLightMode::BREATH;
+    } else if (set_light == "custom") {
+        f_mode = AgxLightMode::CUSTOM;
+    } else {
+        RCLCPP_WARN(node_->get_logger(), "Unknown Light mode: %s", set_light.c_str());
+    }
+    // Set success response
+    robot_->SetLightCommand(f_mode, f_value, f_mode, f_value);
+    response->success = true;
+    response->message = "Light has been set to %s.", set_light.c_str();
+
+
+    RCLCPP_INFO(node_->get_logger(), "Light has been set to %s.", set_light.c_str());
+    return response->success;
+}
+
 }  // namespace westonrobot
