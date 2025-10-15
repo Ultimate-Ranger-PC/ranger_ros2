@@ -546,7 +546,8 @@ bool RangerROSMessenger::SetLightCallback(
 
     // // Reset odometry state
     // std::string set_light = request->mode;
-    // AgxLightMode f_mode;
+    AgxLightMode f_mode;
+    uint8_t f_value = 0;
     // uint8_t f_value = request->brightness;
 
     // if (set_light == "on") {
