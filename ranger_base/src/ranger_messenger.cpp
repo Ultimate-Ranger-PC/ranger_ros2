@@ -208,6 +208,14 @@ void RangerROSMessenger::PublishStateToROS() {
     system_msg.battery_voltage = state.system_state.battery_voltage;
     system_msg.motion_mode = state.motion_mode_state.motion_mode;
 
+    if (state.light_state.front_light.mode == CONST_ON) {
+      system_msg.light_state = 1;
+    } else if (state.light_state.front_light.mode == CONST_OFF) {
+      system_msg.light_state = 0;
+    } else {
+      system_msg.light_state = 2;
+    }
+
     system_state_pub_->publish(system_msg);
   }
 

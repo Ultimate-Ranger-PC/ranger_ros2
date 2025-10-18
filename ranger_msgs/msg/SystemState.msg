@@ -5,6 +5,10 @@ uint8 VEHICLE_STATE_EXCEPTION = 2
 uint8 CONTROL_MODE_RC = 0
 uint8 CONTROL_MODE_CAN = 1
 
+uint8 LIGHT_STATE_OFF = 0
+uint8 LIGHT_STATE_ON = 1
+uint8 LIGHT_STATE_BLINK = 2
+
 uint8 MOTION_MODE_DUAL_ACKERMAN = 0
 uint8 MOTION_MODE_PARALLEL = 1
 uint8 MOTION_MODE_SPINNING = 2
@@ -17,6 +21,7 @@ std_msgs/Header header
 # system state
 uint8 vehicle_state
 uint8 control_mode
+uint8 light_state
 uint16 error_code
 float64 battery_voltage
 
