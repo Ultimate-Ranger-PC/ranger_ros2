@@ -20,7 +20,7 @@ namespace westonrobot {
 // }  // namespace
 
 ///////////////////////////////////////////////////////////////////////////////////
-RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
+RangerROSAction::RangerROSAction(rclcpp::Node::SharedPtr& node){
 
   node_ = node;
   LoadParameters();
@@ -47,7 +47,7 @@ RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
   SetupAction();
 }
 
-void RangerROSMessenger::Run() {
+void RangerROSAction::Run() {
   rclcpp::Rate rate(update_rate_);
   while (rclcpp::ok()) {
     PublishStateToROS();
@@ -56,7 +56,7 @@ void RangerROSMessenger::Run() {
   }
 }
 
-void RangerROSMessenger::LoadParameters() {
+void RangerROSAction::LoadParameters() {
   //load parameter from launch files
   port_name_ = node_->declare_parameter<std::string>("port_name","can0");
   robot_model_ = node_->declare_parameter<std::string>("robot_model","ranger");
@@ -126,7 +126,7 @@ void RangerROSMessenger::LoadParameters() {
   }
 }
 
-void RangerROSMessenger::SetupAction() {
+void RangerROSAction::SetupAction() {
   // publisher
   
   // subscriber
@@ -143,11 +143,11 @@ void RangerROSMessenger::SetupAction() {
   tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
 }
 
-// void RangerROSMessenger::SetupServices() {
+// void RangerROSAction::SetupServices() {
 //     RCLCPP_INFO(node_->get_logger(), "Action Services are.");
 // }
 
-void RangerROSMessenger::PublishStateToROS() {
+void RangerROSAction::PublishStateToROS() {
   current_time_ = node_->get_clock()->now();
 
   static bool init_run = true;

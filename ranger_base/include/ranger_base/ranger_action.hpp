@@ -34,7 +34,7 @@
 #include "ranger_base/ranger_params.hpp"
 
 namespace westonrobot {
-class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenger>
+class RangerROSAction : public std::enable_shared_from_this<RangerROSAction>
 {
   struct RobotParams {
     double track;
@@ -51,7 +51,7 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   enum class RangerSubType { kRanger = 0, kRangerMiniV1, kRangerMiniV2 };
 
  public:
-  RangerROSMessenger(rclcpp::Node::SharedPtr& node);
+  RangerROSAction(rclcpp::Node::SharedPtr& node);
 
   void Run();
 
