@@ -8,6 +8,7 @@
 */
 
 #include "ranger_base/ranger_messenger.hpp"
+#include "ranger_base/ranger_action.hpp"
 
 #include "ranger_base/kinematics_model.hpp"
 
@@ -42,6 +43,8 @@ RangerROSMessenger::RangerROSMessenger(rclcpp::Node::SharedPtr& node){
     RCLCPP_ERROR(node_->get_logger(),"Invalid port name: %s", port_name_.c_str());
     return;
   }
+  
+  action_server_ = std::make_shared<westonrobot::RangerROSAction>(node_, robot_);
 
   SetupServices();  // Initialize the services
   SetupSubscription();

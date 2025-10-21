@@ -1,128 +1,154 @@
+#pragma once
 /**
-* @file ranger_messenger.hpp
-* @date 2021-04-20
-* @brief
-*
-*/
+ * @file ranger_action.hpp
+ * @brief Header‑only ROS 2 Action‑Server zur Blinklichtsteuerung
+ */
 
-#ifndef RANGER_ACTION_HPP
-#define RANGER_ACTION_HPP
-
-//std and c++ inlclude
 #include <string>
 #include <memory>
-#include <cmath>
 #include <chrono>
 #include <thread>
 
-//ros include
 #include <rclcpp/rclcpp.hpp>
-#include <rclcpp/executor.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 
-#include <rclcpp/rclcpp.hpp>
-
-#include "rclcpp_action/rclcpp_action.hpp"
-//third libaray inclue
-#include "ugv_sdk/details/robot_base/ranger_base.hpp"
 #include "ugv_sdk/mobile_robot/ranger_robot.hpp"
-#include <eigen3/Eigen/Core>
-
-//user msg include
-#include <ranger_msgs/action/blink_light_action.hpp>
-
-
-#include "ranger_base/ranger_params.hpp"
+#include "ranger_msgs/action/blink_light_action.hpp"
 
 namespace westonrobot {
+
 class RangerROSAction : public std::enable_shared_from_this<RangerROSAction>
 {
-  struct RobotParams {
-    double track;
-    double wheelbase;
-    double max_linear_speed;
-    double max_angular_speed;
-    double max_speed_cmd;
-    double max_steer_angle_central;
-    double max_steer_angle_parallel;
-    double max_round_angle;
-    double min_turn_radius;
-  };
+public:
+  using Blink = ranger_msgs::action::BlinkLightAction;
+  using GoalHandleBlink = rclcpp_action::ServerGoalHandle<Blink>;
 
-  enum class RangerSubType { kRanger = 0, kRangerMiniV1, kRangerMiniV2 };
+  // Konstruktor erhält Node und Robot‑Referenz
+  inline RangerROSAction(rclcpp::Node::SharedPtr node,
+                         std::shared_ptr<RangerRobot> robot)
+  : node_(std::move(node)), robot_(std::move(robot))
+  {
+    SetupAction();
+  }
 
- public:
-  RangerROSAction(rclcpp::Node::SharedPtr& node);
-
-  void Run();
-
- private:
-  void LoadParameters();
-  void SetupSubscription();
-  //void SetupServices();  // Function for setting up ROS2 service
-  void PublishStateToROS();
-
-  rclcpp_action::Server<Blink>::SharedPtr action_server_;
-  bool light_on_;
-
-  rclcpp_action::GoalResponse handle_goal(
-    const rclcpp_action::GoalUUID & uuid,
-    std::shared_ptr<const Blink::Goal> goal);
-
-  rclcpp_action::CancelResponse handle_cancel(
-    const std::shared_ptr<GoalHandleBlink> goal_handle);
-
-  void handle_accepted(const std::shared_ptr<GoalHandleBlink> goal_handle);
-
-  void execute(const std::shared_ptr<GoalHandleBlink> goal_handle);
-
-  void toggle_light();
+private:
+  inline void SetupAction();
+  inline rclcpp_action::GoalResponse handle_goal(
+      const rclcpp_action::GoalUUID & uuid,
+      std::shared_ptr<const Blink::Goal> goal);
+  inline rclcpp_action::CancelResponse handle_cancel(
+      const std::shared_ptr<GoalHandleBlink> goal_handle);
+  inline void handle_accepted(const std::shared_ptr<GoalHandleBlink> goal_handle);
+  inline void execute(const std::shared_ptr<GoalHandleBlink> goal_handle);
+  inline void toggle_light();
 
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<RangerRobot> robot_;
-  RangerSubType robot_type_;
-  RobotParams robot_params_;
-
-  // constants
-  const double steer_angle_tolerance_ = 0.005;  // ~+-0.287 degrees
-
-  // parameters
-  std::string robot_model_;
-  std::string port_name_;
-  std::string odom_frame_;
-  std::string base_frame_;
-  std::string odom_topic_name_;
-  int update_rate_;
-  bool publish_odom_tf_;
-
-  /// Covariance diagonal
-  double position_covariance_;
-  double orientation_covariance_;
-  double linear_velocity_covariance_;
-  double angular_velocity_covariance_;
-
-  uint8_t motion_mode_ = 0;
-
-  rclcpp::Publisher<ranger_msgs::msg::SystemState>::SharedPtr system_state_pub_;
-  rclcpp::Publisher<ranger_msgs::msg::MotionState>::SharedPtr motion_state_pub_;
-  rclcpp::Publisher<ranger_msgs::msg::ActuatorStateArray>::SharedPtr actuator_state_pub_;
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::BatteryState>::SharedPtr battery_state_pub_;
-
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr motion_cmd_sub_;
-
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-  
-  // ROS2 Service to Reset the Odometry Frame
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_odom_service_;
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr set_light_service_;
-
-  // odom variables
-  rclcpp::Time last_time_;
-  rclcpp::Time current_time_;
-  double position_x_ = 0.0;
-  double position_y_ = 0.0;
-  double theta_ = 0.0;
+  rclcpp_action::Server<Blink>::SharedPtr action_server_;
 };
-}  // namespace westonrobot
 
-#endif  // RANGER_MESSENGER_HPP
+// -----------------------------------------------------------------------------
+// Inline‑Implementierungen
+// -----------------------------------------------------------------------------
+
+inline void RangerROSAction::SetupAction()
+{
+  using namespace std::placeholders;
+  action_server_ = rclcpp_action::create_server<Blink>(
+      node_,
+      "blink_light",
+      std::bind(&RangerROSAction::handle_goal, this, _1, _2),
+      std::bind(&RangerROSAction::handle_cancel, this, _1),
+      std::bind(&RangerROSAction::handle_accepted, this, _1));
+
+  RCLCPP_INFO(node_->get_logger(), "Blink Light Action Server initialized.");
+}
+
+inline rclcpp_action::GoalResponse RangerROSAction::handle_goal(
+    const rclcpp_action::GoalUUID &,
+    std::shared_ptr<const Blink::Goal> goal)
+{
+  RCLCPP_INFO(node_->get_logger(),
+              "New goal: repetitions=%d, ON=%.2fs, OFF=%.2fs",
+              goal->repetitions, goal->frequency_on, goal->frequency_off);
+  return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+inline rclcpp_action::CancelResponse RangerROSAction::handle_cancel(
+    const std::shared_ptr<GoalHandleBlink>)
+{
+  RCLCPP_INFO(node_->get_logger(), "Cancel request received.");
+  return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+inline void RangerROSAction::handle_accepted(
+    const std::shared_ptr<GoalHandleBlink> goal_handle)
+{
+  std::thread([this, goal_handle]() { execute(goal_handle); }).detach();
+}
+
+inline void RangerROSAction::execute(
+    const std::shared_ptr<GoalHandleBlink> goal_handle)
+{
+  auto goal = goal_handle->get_goal();
+  auto feedback = std::make_shared<Blink::Feedback>();
+  auto result = std::make_shared<Blink::Result>();
+
+  if (goal->repetitions == -1)
+  {
+    toggle_light();
+    result->success = true;
+    goal_handle->succeed(result);
+    RCLCPP_INFO(node_->get_logger(), "Single toggle executed.");
+    return;
+  }
+
+  for (int i = 1; i <= goal->repetitions; ++i)
+  {
+    if (goal_handle->is_canceling())
+    {
+      result->success = false;
+      goal_handle->canceled(result);
+      RCLCPP_INFO(node_->get_logger(), "Blink action canceled.");
+      return;
+    }
+
+    toggle_light();
+    std::this_thread::sleep_for(std::chrono::duration<float>(goal->frequency_on));
+
+    toggle_light();
+    std::this_thread::sleep_for(std::chrono::duration<float>(goal->frequency_off));
+
+    feedback->current_iteration = i;
+    goal_handle->publish_feedback(feedback);
+    RCLCPP_INFO(node_->get_logger(), "Blink %d/%d done", i, goal->repetitions);
+  }
+
+  result->success = true;
+  goal_handle->succeed(result);
+  RCLCPP_INFO(node_->get_logger(), "Blink action completed successfully.");
+}
+
+inline void RangerROSAction::toggle_light()
+{
+  AgxLightMode f_mode;
+  uint8_t f_value = 0;
+  const char *state = "off";
+
+  auto robot_state = robot_->GetRobotState();
+  if (robot_state.light_state.front_light.mode == CONST_ON)
+  {
+    f_mode = AgxLightMode::CONST_OFF;
+    state = "off";
+  }
+  else
+  {
+    f_mode = AgxLightMode::CONST_ON;
+    state = "on";
+  }
+
+  robot_->SetLightCommand(f_mode, f_value, f_mode, f_value);
+  RCLCPP_INFO(node_->get_logger(), "Light switched %s.", state);
+}
+
+}  // namespace westonrobot

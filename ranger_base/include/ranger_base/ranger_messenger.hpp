@@ -22,7 +22,6 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <tf2_ros/transform_broadcaster.h>
-#include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -41,6 +40,7 @@
 #include "ranger_msgs/msg/actuator_state.hpp"
 #include "ranger_msgs/msg/driver_state.hpp"
 #include "ranger_msgs/msg/motor_state.hpp"
+#include "ranger_base/ranger_action.hpp"
 
 // Standard Empty service for reset
 #include <std_srvs/srv/trigger.hpp> 
@@ -93,6 +93,7 @@ class RangerROSMessenger : public std::enable_shared_from_this<RangerROSMessenge
   std::shared_ptr<RangerRobot> robot_;
   RangerSubType robot_type_;
   RobotParams robot_params_;
+  std::shared_ptr<RangerROSAction> action_server_;
 
   // constants
   const double steer_angle_tolerance_ = 0.005;  // ~+-0.287 degrees
