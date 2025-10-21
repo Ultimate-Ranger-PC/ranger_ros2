@@ -30,9 +30,14 @@ set(srv_file
 "srv/LightService.srv"
 )
 
+set(action_file
+"action/BlinkLightAction.action"
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
     ${msg_file}
     ${srv_file}
+    ${action_file}
   DEPENDENCIES 
     builtin_interfaces std_msgs)
 

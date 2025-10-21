@@ -1,0 +1,10 @@
+# Goal
+int32 repetitions
+float32 frequency_on
+float32 frequency_off
+---
+# Result
+bool success
+---
+# Feedback
+int32 current_iteration
