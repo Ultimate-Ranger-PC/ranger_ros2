@@ -93,17 +93,24 @@ inline void RangerROSAction::execute(
   auto goal = goal_handle->get_goal();
   auto feedback = std::make_shared<Blink::Feedback>();
   auto result = std::make_shared<Blink::Result>();
+  bool endless = false;
+  int goal_repetitions = goal->repetitions;
 
-  if (goal->repetitions == -1)
+  if (goal->repetitions == 0)
   {
     toggle_light();
     result->success = true;
     goal_handle->succeed(result);
     RCLCPP_INFO(node_->get_logger(), "Single toggle executed.");
     return;
+  } else if (goal->repetitions == -1)
+  {
+    goal_repetitions= 2;
+    endless = true;
   }
+  
 
-  for (int i = 1; i <= goal->repetitions; ++i)
+  for (int i = 1; i <= goal_repetitions; ++i)
   {
     if (goal_handle->is_canceling())
     {
@@ -111,6 +118,9 @@ inline void RangerROSAction::execute(
       goal_handle->canceled(result);
       RCLCPP_INFO(node_->get_logger(), "Blink action canceled.");
       return;
+    }
+    if (endless){
+      i--;
     }
 
     toggle_light();
@@ -128,6 +138,7 @@ inline void RangerROSAction::execute(
   goal_handle->succeed(result);
   RCLCPP_INFO(node_->get_logger(), "Blink action completed successfully.");
 }
+
 
 inline void RangerROSAction::toggle_light()
 {
