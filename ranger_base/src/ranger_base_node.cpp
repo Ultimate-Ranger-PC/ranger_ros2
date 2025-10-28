@@ -40,6 +40,5 @@ int main(int argc, char** argv)
   // instantiate a robot object
   RangerROSMessenger messenger(node);
   messenger.Run();
-
   return 0;
 }
