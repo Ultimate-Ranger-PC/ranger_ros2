@@ -13,6 +13,8 @@
     <arg name="linear_velocity_covariance" default="0.1" />
     <arg name="angular_velocity_covariance" default="0.1" />
 
+    <!-- <remap from="/tf_static" to="/ranger/tf_static"/> -->
+
     <include file="$(find-pkg-share ranger_base)/launch/include/ranger_robot_base.launch.xml">
         <arg name="port_name" value="$(var port_name)"/>
         <arg name="robot_model" value="$(var robot_model)"/>
